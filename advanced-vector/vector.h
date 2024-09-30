@@ -218,7 +218,7 @@ public:
         }
         auto ptr = iterator(pos);
         if (ptr == end()) {
-            std::construct_at(end(), std::forward<Args>(args)...);
+            std::construct_at(ptr, std::forward<Args>(args)...);
         }
         else {
             RawMemory<T> tmp(1);

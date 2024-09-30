@@ -207,14 +207,7 @@ public:
 
     template<typename... Args>
     T& EmplaceBack(Args&&... args) {
-        if (size_ == data_.Capacity()) {
-            Realocate(end(), std::forward<Args>(args)...);
-        }
-        else {
-            std::construct_at(end(), std::forward<Args>(args)...);
-            ++size_;
-        }
-        return data_[size_ - 1];
+        return *Emplace(end(), std::forward<Args>(args)...);
     }
 
     template<typename... Args>
@@ -225,7 +218,7 @@ public:
         }
         auto ptr = iterator(pos);
         if (ptr == end()) {
-            EmplaceBack(std::forward<Args>(args)...);
+            std::construct_at(end(), std::forward<Args>(args)...);
         }
         else {
             RawMemory<T> tmp(1);
@@ -234,8 +227,8 @@ public:
             std::move_backward(ptr, end() - 1, end());
             *ptr = std::move(*tmp_ptr);
             std::destroy_at(tmp_ptr);
-            ++size_;
         }
+        ++size_;
         return ptr;
     }
 

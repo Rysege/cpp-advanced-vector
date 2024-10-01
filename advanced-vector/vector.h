@@ -22,15 +22,13 @@ public:
     RawMemory(const RawMemory&) = delete;
     RawMemory& operator=(const RawMemory& rhs) = delete;
 
-    RawMemory(RawMemory&& other) noexcept
-        : buffer_(std::exchange(other.buffer_, nullptr))
-        , capacity_(std::exchange(other.capacity_, 0)) {
+    RawMemory(RawMemory&& other) noexcept {
+        Swap(other);
     }
 
     RawMemory& operator=(RawMemory&& rhs) noexcept {
         if (this != &rhs) {
-            buffer_ = std::exchange(rhs.buffer_, nullptr);
-            capacity_ = std::exchange(rhs.capacity_, 0);
+            Swap(rhs);
         }
         return *this;
     }
@@ -117,14 +115,7 @@ public:
                 Swap(rhs_copy);
             }
             else {
-                std::copy(rhs.begin(), rhs.begin() + std::min(size_, rhs.size_), begin());
-                if (size_ > rhs.size_) {
-                    std::destroy(begin() + rhs.size_, end());
-                }
-                else {
-                    std::uninitialized_copy(rhs.begin() + size_, rhs.end(), end());
-                }
-                size_ = rhs.size_;
+                AllocateOnCapacity(rhs);
             }
         }
         return *this;
@@ -221,12 +212,10 @@ public:
             std::construct_at(ptr, std::forward<Args>(args)...);
         }
         else {
-            RawMemory<T> tmp(1);
-            auto tmp_ptr = std::construct_at(tmp.GetAddress(), std::forward<Args>(args)...);
+            T tmp(std::forward<Args>(args)...);
             std::construct_at(end(), std::move(data_[size_ - 1]));
             std::move_backward(ptr, end() - 1, end());
-            *ptr = std::move(*tmp_ptr);
-            std::destroy_at(tmp_ptr);
+            *ptr = std::move(tmp);
         }
         ++size_;
         return ptr;
@@ -302,5 +291,16 @@ private:
         data_.Swap(new_data);
         ++size_;
         return result;
+    }
+
+    void AllocateOnCapacity(const Vector& rhs) {
+        std::copy(rhs.begin(), rhs.begin() + std::min(size_, rhs.size_), begin());
+        if (size_ > rhs.size_) {
+            std::destroy(begin() + rhs.size_, end());
+        }
+        else {
+            std::uninitialized_copy(rhs.begin() + size_, rhs.end(), end());
+        }
+        size_ = rhs.size_;
     }
 };
